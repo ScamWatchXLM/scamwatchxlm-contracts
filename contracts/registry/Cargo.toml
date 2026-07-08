@@ -1,0 +1,28 @@
+[package]
+name = "scamwatchxlm-registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Registry of malicious accounts, issuers, assets, phishing domains, and scam transactions for ScamWatchXLM."
+
+[lib]
+name = "registry"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+scamwatchxlm-common = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+# Path deps, test-only: exercise real cross-contract calls (permission
+# checks, pause, reputation callbacks) against the actual contracts rather
+# than hand-rolled mocks.
+scamwatchxlm-governance = { path = "../governance" }
+scamwatchxlm-reputation = { path = "../reputation" }
+
+[features]
+testutils = ["soroban-sdk/testutils"]

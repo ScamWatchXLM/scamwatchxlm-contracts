@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = [
+    "contracts/common",
+    "contracts/governance",
+    "contracts/registry",
+    "contracts/reputation",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["ScamWatchXLM Contributors"]
+repository = "https://github.com/scamwatchxlm/scamwatchxlm-contracts"
+rust-version = "1.85"
+
+[workspace.dependencies]
+soroban-sdk = "27.0.0"
+scamwatchxlm-common = { path = "contracts/common" }
+
+# Build profile recommended by the Soroban toolchain for producing small,
+# deterministic release Wasm binaries suitable for on-chain deployment.
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true
+strip = "symbols"
+
+# Kept close to release so contract behavior (e.g. overflow panics) is
+# identical between the two profiles; only used for faster local builds.
+[profile.release-with-logs]
+inherits = "release"
+debug-assertions = true

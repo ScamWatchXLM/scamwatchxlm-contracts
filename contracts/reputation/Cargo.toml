@@ -1,0 +1,26 @@
+[package]
+name = "scamwatchxlm-reputation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Reputation scoring for reporters and validators in the ScamWatchXLM ecosystem."
+
+[lib]
+name = "reputation"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+scamwatchxlm-common = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+# Path dep, test-only: exercise real admin permission checks against the
+# actual Governance contract rather than a hand-rolled mock.
+scamwatchxlm-governance = { path = "../governance" }
+
+[features]
+testutils = ["soroban-sdk/testutils"]

@@ -1,0 +1,23 @@
+[package]
+name = "scamwatchxlm-governance"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Admin, validator, and role-based access control for ScamWatchXLM: pause switch and upgrade authorization."
+
+[lib]
+name = "governance"
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+scamwatchxlm-common = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]

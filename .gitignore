@@ -1,0 +1,11 @@
+/target
+**/*.rs.bk
+.DS_Store
+test_snapshots/
+*.wasm
+!docs/**/*.wasm
+.soroban
+.stellar
+*.env
+.env.*
+!.env.example
