@@ -228,8 +228,9 @@ impl RegistryContract {
     }
 
     /// Validates or rejects a pending report. Callable by a Governance
-    /// validator or admin. If a Reputation contract is configured, the
-    /// reporter's score is adjusted accordingly.
+    /// validator or admin, except the report's own reporter, who may not
+    /// validate their own submission. If a Reputation contract is
+    /// configured, the reporter's score is adjusted accordingly.
     pub fn validate_report(
         env: Env,
         validator: Address,
@@ -245,6 +246,9 @@ impl RegistryContract {
         let mut report = storage::get_report(&env, report_id).ok_or(Error::ReportNotFound)?;
         if report.status != ReportStatus::Pending {
             return Err(Error::InvalidStatusTransition);
+        }
+        if report.reporter == validator {
+            return Err(Error::SelfValidation);
         }
 
         report.status = if approve {
