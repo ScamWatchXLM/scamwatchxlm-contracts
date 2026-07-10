@@ -19,4 +19,8 @@ pub enum Error {
     /// The report is not in a state that allows the requested transition
     /// (e.g. validating an already-archived report).
     InvalidStatusTransition = 6,
+    /// A validator may not validate their own report: doing so would let a
+    /// reporter rubber-stamp themselves for reputation rewards with no
+    /// independent review.
+    SelfValidation = 7,
 }

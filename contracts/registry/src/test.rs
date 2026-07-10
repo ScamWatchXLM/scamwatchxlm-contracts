@@ -123,6 +123,24 @@ fn validator_can_approve_a_report() {
 }
 
 #[test]
+fn reporter_cannot_validate_their_own_report() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    h.governance.add_validator(&h.owner, &reporter);
+
+    let id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::Critical, &evidence(&h.env));
+
+    let result = h.registry.try_validate_report(&reporter, &id, &true, &None);
+    assert_eq!(result, Err(Ok(Error::SelfValidation)));
+
+    let report = h.registry.get_report(&id);
+    assert_eq!(report.status, scamwatchxlm_common::ReportStatus::Pending);
+}
+
+#[test]
 fn validating_twice_is_rejected() {
     let h = setup();
     let reporter = Address::generate(&h.env);
