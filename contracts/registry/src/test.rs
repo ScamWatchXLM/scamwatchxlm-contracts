@@ -72,6 +72,82 @@ fn duplicate_report_for_same_entity_is_rejected() {
 }
 
 #[test]
+fn rejected_report_allows_entity_to_be_reported_again() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    let validator = Address::generate(&h.env);
+    h.governance.add_validator(&h.owner, &validator);
+
+    let first_id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::Low, &evidence(&h.env));
+    h.registry
+        .validate_report(&validator, &first_id, &false, &None);
+
+    // The entity is not stuck unreportable just because the first report
+    // (wrongly, or no longer applicably) was rejected.
+    let second_id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::Critical, &evidence(&h.env));
+    assert_ne!(first_id, second_id);
+
+    let record = h.registry.get_account_record(&scammer).unwrap();
+    assert_eq!(record.stats.report_count, 2);
+    assert_eq!(record.stats.latest_report_id, second_id);
+    assert_eq!(record.stats.highest_risk, RiskLevel::Critical);
+    assert_eq!(
+        record.stats.status,
+        scamwatchxlm_common::ReportStatus::Pending
+    );
+
+    // A third report is blocked again while the second is still pending.
+    let result =
+        h.registry
+            .try_report_account(&reporter, &scammer, &RiskLevel::Critical, &evidence(&h.env));
+    assert_eq!(result, Err(Ok(Error::DuplicateReport)));
+}
+
+#[test]
+fn archived_report_allows_entity_to_be_reported_again() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    let admin = Address::generate(&h.env);
+    h.governance.add_admin(&h.owner, &admin);
+
+    let first_id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::Low, &evidence(&h.env));
+    h.registry.archive_report(&admin, &first_id);
+
+    let second_id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::High, &evidence(&h.env));
+    assert_ne!(first_id, second_id);
+    assert!(h.registry.is_account_flagged(&scammer));
+}
+
+#[test]
+fn validated_report_still_blocks_resubmission() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    let validator = Address::generate(&h.env);
+    h.governance.add_validator(&h.owner, &validator);
+
+    let id =
+        h.registry
+            .report_account(&reporter, &scammer, &RiskLevel::Critical, &evidence(&h.env));
+    h.registry.validate_report(&validator, &id, &true, &None);
+
+    let result =
+        h.registry
+            .try_report_account(&reporter, &scammer, &RiskLevel::Critical, &evidence(&h.env));
+    assert_eq!(result, Err(Ok(Error::DuplicateReport)));
+}
+
+#[test]
 fn empty_evidence_uri_is_rejected() {
     let h = setup();
     let reporter = Address::generate(&h.env);

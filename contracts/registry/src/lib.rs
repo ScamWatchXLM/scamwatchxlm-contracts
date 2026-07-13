@@ -70,7 +70,7 @@ fn submit_report(
     require_not_paused(env, &governance)?;
     validate_evidence_uri(&evidence_uri)?;
 
-    if storage::existing_report_id(env, &entity).is_some() {
+    if storage::has_active_report(env, &entity) {
         return Err(Error::DuplicateReport);
     }
 

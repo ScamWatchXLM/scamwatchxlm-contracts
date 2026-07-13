@@ -73,6 +73,26 @@ impl EntityStats {
             last_reported_at: report.created_at,
         }
     }
+
+    /// Folds a new report into stats already on file for the entity (e.g. a
+    /// fresh report filed after an earlier one was rejected or archived).
+    /// Preserves the entity's original first-seen data while advancing the
+    /// "latest" fields and accumulating the count.
+    pub fn append(&self, report: &ScamReport) -> Self {
+        Self {
+            report_count: self.report_count + 1,
+            highest_risk: if report.risk_level > self.highest_risk {
+                report.risk_level
+            } else {
+                self.highest_risk
+            },
+            status: report.status,
+            first_report_id: self.first_report_id,
+            latest_report_id: report.id,
+            first_reported_at: self.first_reported_at,
+            last_reported_at: report.created_at,
+        }
+    }
 }
 
 /// Aggregate record for a reported Stellar account. Composition over

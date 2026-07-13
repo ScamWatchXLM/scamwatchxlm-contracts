@@ -5,6 +5,7 @@ use crate::types::{
     AccountRecord, AssetRecord, DataKey, EntityStats, IssuerRecord, ReportedEntity, Reporter,
     ScamReport,
 };
+use scamwatchxlm_common::ReportStatus;
 use soroban_sdk::{Address, BytesN, Env, String, Vec};
 
 /// Ledger close time is ~5 seconds, so a day is ~17280 ledgers.
@@ -195,36 +196,49 @@ fn set_transaction_report_id(env: &Env, tx_hash: &BytesN<32>, id: u64) {
 }
 
 /// Folds a freshly-submitted report into the aggregate record for its
-/// entity, creating the record on first sight. Also used as the
-/// duplicate-prevention check: callers should reject the submission before
-/// this is called if a record/report-id already exists for the entity.
+/// entity, creating the record on first sight or, if the entity was
+/// previously reported and that report has since been rejected/archived
+/// (see [`has_active_report`]), extending the existing record rather than
+/// discarding its history.
 pub fn record_new_report(env: &Env, entity: &ReportedEntity, report: &ScamReport) {
     match entity {
         ReportedEntity::Account(address) => {
+            let stats = match account_record(env, address) {
+                Some(rec) => rec.stats.append(report),
+                None => EntityStats::first(report),
+            };
             set_account_record(
                 env,
                 &AccountRecord {
                     address: address.clone(),
-                    stats: EntityStats::first(report),
+                    stats,
                 },
             );
         }
         ReportedEntity::AssetIssuer(issuer) => {
+            let stats = match issuer_record(env, issuer) {
+                Some(rec) => rec.stats.append(report),
+                None => EntityStats::first(report),
+            };
             set_issuer_record(
                 env,
                 &IssuerRecord {
                     issuer: issuer.clone(),
-                    stats: EntityStats::first(report),
+                    stats,
                 },
             );
         }
         ReportedEntity::Asset(asset_code, issuer) => {
+            let stats = match asset_record(env, asset_code, issuer) {
+                Some(rec) => rec.stats.append(report),
+                None => EntityStats::first(report),
+            };
             set_asset_record(
                 env,
                 &AssetRecord {
                     asset_code: asset_code.clone(),
                     issuer: issuer.clone(),
-                    stats: EntityStats::first(report),
+                    stats,
                 },
             );
         }
@@ -271,9 +285,9 @@ pub fn sync_entity_status(env: &Env, entity: &ReportedEntity, report: &ScamRepor
     }
 }
 
-/// Looks up the report id already on file for `entity`, if any, whether via
-/// its aggregate record (Account/Issuer/Asset) or its dedicated
-/// duplicate-prevention index (Domain/Transaction).
+/// Looks up the id of the most recent report on file for `entity`, if any,
+/// whether via its aggregate record (Account/Issuer/Asset) or its dedicated
+/// index (Domain/Transaction).
 pub fn existing_report_id(env: &Env, entity: &ReportedEntity) -> Option<u64> {
     match entity {
         ReportedEntity::Account(address) => {
@@ -287,5 +301,20 @@ pub fn existing_report_id(env: &Env, entity: &ReportedEntity) -> Option<u64> {
         }
         ReportedEntity::Domain(domain) => domain_report_id(env, domain),
         ReportedEntity::Transaction(tx_hash) => transaction_report_id(env, tx_hash),
+    }
+}
+
+/// `true` if `entity` has a report on file that is still `Pending` or
+/// `Validated`. A submission for an entity whose only report(s) were
+/// `Rejected` or `Archived` is allowed through: otherwise a single wrongly
+/// (or no-longer) applicable rejection/archival would make the entity
+/// permanently unreportable, even with new evidence.
+pub fn has_active_report(env: &Env, entity: &ReportedEntity) -> bool {
+    match existing_report_id(env, entity).and_then(|id| get_report(env, id)) {
+        Some(report) => matches!(
+            report.status,
+            ReportStatus::Pending | ReportStatus::Validated
+        ),
+        None => false,
     }
 }

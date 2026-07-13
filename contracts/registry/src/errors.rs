@@ -10,7 +10,9 @@ pub enum Error {
     NotAuthorized = 1,
     /// The Governance contract reports the system is paused.
     ContractPaused = 2,
-    /// A report already exists for this exact entity.
+    /// A report against this exact entity is still `Pending` or `Validated`.
+    /// Once that report is `Rejected` or `Archived`, the entity may be
+    /// reported again.
     DuplicateReport = 3,
     /// No report exists with the given id.
     ReportNotFound = 4,
