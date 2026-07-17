@@ -251,6 +251,28 @@ fn admin_can_archive_a_report() {
 }
 
 #[test]
+fn pause_blocks_archiving_a_report() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    let admin = Address::generate(&h.env);
+    h.governance.add_admin(&h.owner, &admin);
+
+    let id = h
+        .registry
+        .report_account(&reporter, &scammer, &RiskLevel::Low, &evidence(&h.env));
+
+    h.governance.pause(&h.owner);
+    let result = h.registry.try_archive_report(&admin, &id);
+    assert_eq!(result, Err(Ok(Error::ContractPaused)));
+
+    h.governance.unpause(&h.owner);
+    h.registry.archive_report(&admin, &id);
+    let report = h.registry.get_report(&id);
+    assert_eq!(report.status, scamwatchxlm_common::ReportStatus::Archived);
+}
+
+#[test]
 fn pagination_over_reporter_history() {
     let h = setup();
     let reporter = Address::generate(&h.env);

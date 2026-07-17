@@ -297,6 +297,7 @@ impl RegistryContract {
     pub fn archive_report(env: Env, caller: Address, report_id: u64) -> Result<(), Error> {
         caller.require_auth();
         let governance = storage::governance(&env);
+        require_not_paused(&env, &governance)?;
         require_admin(&env, &governance, &caller)?;
 
         let mut report = storage::get_report(&env, report_id).ok_or(Error::ReportNotFound)?;
