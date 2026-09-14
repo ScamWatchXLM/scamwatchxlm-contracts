@@ -328,6 +328,9 @@ impl RegistryContract {
         require_admin(&env, &governance, &caller)?;
 
         let mut report = storage::get_report(&env, report_id).ok_or(Error::ReportNotFound)?;
+        if report.status == ReportStatus::Archived {
+            return Err(Error::InvalidStatusTransition);
+        }
         report.status = ReportStatus::Archived;
         report.updated_at = env.ledger().timestamp();
         storage::set_report(&env, &report);

@@ -316,6 +316,23 @@ fn admin_can_archive_a_report() {
 }
 
 #[test]
+fn archiving_an_already_archived_report_is_rejected() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let scammer = Address::generate(&h.env);
+    let admin = Address::generate(&h.env);
+    h.governance.add_admin(&h.owner, &admin);
+
+    let id = h
+        .registry
+        .report_account(&reporter, &scammer, &RiskLevel::Low, &evidence(&h.env));
+    h.registry.archive_report(&admin, &id);
+
+    let result = h.registry.try_archive_report(&admin, &id);
+    assert_eq!(result, Err(Ok(Error::InvalidStatusTransition)));
+}
+
+#[test]
 fn pagination_over_reporter_history() {
     let h = setup();
     let reporter = Address::generate(&h.env);
