@@ -163,6 +163,53 @@ fn empty_evidence_uri_is_rejected() {
 }
 
 #[test]
+fn empty_domain_is_rejected() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+
+    let result = h.registry.try_report_domain(
+        &reporter,
+        &String::from_str(&h.env, ""),
+        &RiskLevel::Low,
+        &evidence(&h.env),
+    );
+    assert_eq!(result, Err(Ok(Error::InvalidInput)));
+}
+
+#[test]
+fn empty_asset_code_is_rejected() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let issuer = Address::generate(&h.env);
+
+    let result = h.registry.try_report_asset(
+        &reporter,
+        &String::from_str(&h.env, ""),
+        &issuer,
+        &RiskLevel::Low,
+        &evidence(&h.env),
+    );
+    assert_eq!(result, Err(Ok(Error::InvalidInput)));
+}
+
+#[test]
+fn oversized_asset_code_is_rejected() {
+    let h = setup();
+    let reporter = Address::generate(&h.env);
+    let issuer = Address::generate(&h.env);
+
+    // Stellar asset codes are at most 12 characters.
+    let result = h.registry.try_report_asset(
+        &reporter,
+        &String::from_str(&h.env, "THIRTEENCHARS"),
+        &issuer,
+        &RiskLevel::Low,
+        &evidence(&h.env),
+    );
+    assert_eq!(result, Err(Ok(Error::InvalidInput)));
+}
+
+#[test]
 fn only_validator_or_admin_can_validate_reports() {
     let h = setup();
     let reporter = Address::generate(&h.env);

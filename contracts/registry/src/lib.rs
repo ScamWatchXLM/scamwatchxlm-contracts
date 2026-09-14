@@ -26,6 +26,14 @@ use types::{AccountRecord, AssetRecord, IssuerRecord, ReportedEntity, Reporter, 
 /// carry a *link* to evidence (IPFS, HTTPS, etc.), not the evidence itself.
 const MAX_EVIDENCE_URI_LEN: u32 = 200;
 
+/// Domains longer than this are rejected as input validation. 253 is the
+/// maximum length of a fully-qualified DNS name.
+const MAX_DOMAIN_LEN: u32 = 253;
+
+/// Asset codes longer than this are rejected as input validation. Stellar
+/// asset codes are at most 12 characters (the `AlphaNum12` limit).
+const MAX_ASSET_CODE_LEN: u32 = 12;
+
 fn require_not_paused(env: &Env, governance: &Address) -> Result<(), Error> {
     if GovernanceClient::new(env, governance).is_paused() {
         return Err(Error::ContractPaused);
@@ -50,6 +58,20 @@ fn require_admin(env: &Env, governance: &Address, caller: &Address) -> Result<()
 
 fn validate_evidence_uri(evidence_uri: &String) -> Result<(), Error> {
     if evidence_uri.is_empty() || evidence_uri.len() > MAX_EVIDENCE_URI_LEN {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
+fn validate_domain(domain: &String) -> Result<(), Error> {
+    if domain.is_empty() || domain.len() > MAX_DOMAIN_LEN {
+        return Err(Error::InvalidInput);
+    }
+    Ok(())
+}
+
+fn validate_asset_code(asset_code: &String) -> Result<(), Error> {
+    if asset_code.is_empty() || asset_code.len() > MAX_ASSET_CODE_LEN {
         return Err(Error::InvalidInput);
     }
     Ok(())
@@ -184,6 +206,7 @@ impl RegistryContract {
         risk_level: RiskLevel,
         evidence_uri: String,
     ) -> Result<u64, Error> {
+        validate_asset_code(&asset_code)?;
         submit_report(
             &env,
             reporter,
@@ -201,6 +224,7 @@ impl RegistryContract {
         risk_level: RiskLevel,
         evidence_uri: String,
     ) -> Result<u64, Error> {
+        validate_domain(&domain)?;
         submit_report(
             &env,
             reporter,
